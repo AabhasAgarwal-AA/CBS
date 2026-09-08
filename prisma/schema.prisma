@@ -1,0 +1,181 @@
+// Core Banking System (CBS) - Prisma schema
+// PostgreSQL backend
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---- Bank staff ----
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  role      String   @default("TELLER") // ADMIN | MANAGER | TELLER
+  password  String
+  branch    String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  auditLogs AuditLog[]
+}
+
+// ---- Master: Branches ----
+model Branch {
+  id      String  @id @default(cuid())
+  code    String  @unique
+  name    String
+  city    String
+  ifsc    String  @unique
+  address String?
+
+  customers Customer[]
+  accounts  Account[]
+}
+
+// ---- Customers (KYC) ----
+model Customer {
+  id         String   @id @default(cuid())
+  customerNo String   @unique
+  fullName   String
+  email      String?
+  phone      String
+  dob        DateTime?
+  gender     String? // MALE | FEMALE | OTHER
+  address    String?
+  city       String?
+  state      String?
+  pincode    String?
+  pan        String?  // Tax ID
+  aadhaar    String?  // National ID
+  occupation String?
+  annualIncome Decimal? @db.Decimal(14, 2)
+  kycStatus  String   @default("PENDING") // PENDING | VERIFIED | REJECTED
+  kycDate    DateTime?
+  status     String   @default("ACTIVE") // ACTIVE | INACTIVE | BLOCKED
+  branchId   String?
+  branch     Branch?  @relation(fields: [branchId], references: [id])
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  accounts Account[]
+  loans    Loan[]
+  cards    Card[]
+}
+
+// ---- Accounts ----
+model Account {
+  id            String   @id @default(cuid())
+  accountNumber String   @unique
+  customerId    String
+  customer      Customer @relation(fields: [customerId], references: [id])
+  branchId      String?
+  branch        Branch?  @relation(fields: [branchId], references: [id])
+  type          String   // SAVINGS | CURRENT | FIXED_DEPOSIT | RECURRING
+  balance       Decimal  @default(0) @db.Decimal(18, 2)
+  currency      String   @default("INR")
+  status        String   @default("ACTIVE") // ACTIVE | FROZEN | CLOSED
+  interestRate  Decimal  @default(0) @db.Decimal(6, 3) // up to 999.999 %
+  minBalance    Decimal  @default(0) @db.Decimal(18, 2)
+  openedAt      DateTime @default(now())
+  closedAt      DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  transactions Transaction[]
+  cards        Card[]
+  loans        Loan[]
+}
+
+// ---- Transactions ----
+model Transaction {
+  id            String   @id @default(cuid())
+  txnRef        String   @unique
+  accountNumber String
+  account       Account  @relation(fields: [accountNumber], references: [accountNumber])
+  type          String   // DEPOSIT | WITHDRAW | TRANSFER_IN | TRANSFER_OUT | INTEREST | FEE
+  amount        Decimal  @db.Decimal(18, 2)
+  balanceAfter  Decimal  @db.Decimal(18, 2)
+  description   String?
+  counterparty  String? // for transfers
+  channel       String   @default("TELLER") // TELLER | ATM | ONLINE | MOBILE
+  status        String   @default("SUCCESS") // SUCCESS | FAILED | PENDING
+  createdAt     DateTime @default(now())
+
+  @@index([accountNumber])
+  @@index([createdAt])
+}
+
+// ---- Loans ----
+model Loan {
+  id            String   @id @default(cuid())
+  loanNumber    String   @unique
+  customerId    String
+  customer      Customer @relation(fields: [customerId], references: [id])
+  accountNumber String?
+  account       Account? @relation(fields: [accountNumber], references: [accountNumber])
+  type          String   // HOME | AUTO | PERSONAL | EDUCATION | GOLD
+  principal     Decimal  @db.Decimal(18, 2)
+  interestRate  Decimal  @db.Decimal(6, 3)
+  tenureMonths  Int
+  emi           Decimal  @db.Decimal(18, 2)
+  disbursedAt   DateTime?
+  outstanding   Decimal  @default(0) @db.Decimal(18, 2)
+  status        String   @default("PENDING") // PENDING | APPROVED | REJECTED | DISBURSED | CLOSED | DEFAULTED
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  repayments LoanRepayment[]
+}
+
+model LoanRepayment {
+  id            String   @id @default(cuid())
+  loanId        String
+  loan          Loan     @relation(fields: [loanId], references: [id])
+  amount        Decimal  @db.Decimal(18, 2)
+  principalPart Decimal  @db.Decimal(18, 2)
+  interestPart  Decimal  @db.Decimal(18, 2)
+  balanceAfter  Decimal  @db.Decimal(18, 2)
+  paidAt        DateTime @default(now())
+}
+
+// ---- Cards ----
+model Card {
+  id            String   @id @default(cuid())
+  cardNumber    String   @unique
+  customerId    String
+  customer      Customer @relation(fields: [customerId], references: [id])
+  accountNumber String
+  account       Account  @relation(fields: [accountNumber], references: [accountNumber])
+  type          String   // DEBIT | CREDIT
+  network       String   @default("VISA") // VISA | MASTERCARD | RUPAY
+  expiryMonth   Int
+  expiryYear    Int
+  cvvHash       String
+  pinHash       String?
+  status        String   @default("ACTIVE") // ACTIVE | BLOCKED | EXPIRED | LOST
+  creditLimit   Decimal  @default(0) @db.Decimal(18, 2)
+  dailyLimit    Decimal  @default(50000) @db.Decimal(18, 2)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// ---- Audit log ----
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  action    String   // CREATE | UPDATE | DELETE | LOGIN | TXN
+  entity    String   // CUSTOMER | ACCOUNT | LOAN | CARD | TXN | USER
+  entityId  String?
+  details   String?
+  createdAt DateTime @default(now())
+
+  @@index([entity])
+  @@index([createdAt])
+}
