@@ -1,44 +1,10 @@
 "use client";
 
 import { useEffect } from "react";
-import { useAuth, useNav, type NavKey } from "@/lib/store";
-import {
-  LayoutDashboard,
-  Users,
-  Wallet,
-  ArrowLeftRight,
-  Landmark,
-  CreditCard,
-  BarChart3,
-  ScrollText,
-  Settings,
-  LogOut,
-  Building2,
-  ChevronRight,
-  Send,
-  QrCode,
-  MessageSquare,
-  UsersRound,
-  Repeat,
-  Layers,
-  Share2,
-  TrendingUp,
-  UserPlus,
-  ArrowLeft,
-  FileBarChart,
-  Headphones,
-  Coins,
-  Briefcase,
-  BookOpen,
-  SlidersHorizontal,
-  Folder,
-  FileText,
-  Truck,
-  ShieldCheck,
-  Inbox,
-  History,
-  Wrench,
-} from "lucide-react";
+import { useAuth, useNav } from "@/lib/store";
+import { TITLE } from "@/components/banking/nav";
+import { Sidebar, MobileNav } from "@/components/banking/sidebar";
+import { LogOut, Building2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -84,81 +50,9 @@ import { ReportsView } from "@/components/banking/views/reports";
 import { AuditView } from "@/components/banking/views/audit";
 import { SettingsView } from "@/components/banking/views/settings";
 
-const NAV: { key: NavKey; label: string; icon: React.ElementType; roles?: string[] }[] = [
-  { key: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { key: "service-center", label: "Service Center", icon: Headphones },
-  { key: "customers", label: "Customers", icon: Users },
-  { key: "accounts", label: "Accounts", icon: Wallet },
-  { key: "transactions", label: "Transactions", icon: ArrowLeftRight },
-  { key: "loans", label: "Loans", icon: Landmark },
-  { key: "cards", label: "Cards", icon: CreditCard },
-  { key: "gold-loans", label: "Gold Loans", icon: Coins },
-  { key: "deposit-products", label: "Deposit Products", icon: Layers },
-  { key: "shares", label: "Share Capital", icon: Share2 },
-  { key: "overdrafts", label: "Overdrafts", icon: TrendingUp },
-  { key: "payments", label: "NEFT/RTGS/IMPS", icon: Send },
-  { key: "qr", label: "QR Banking", icon: QrCode },
-  { key: "agents", label: "Field Agents", icon: UsersRound },
-  { key: "standing-instructions", label: "Standing Instructions", icon: Repeat },
-  { key: "member-enrollment", label: "Member Enrollment", icon: UserPlus },
-  { key: "sms", label: "SMS Banking", icon: MessageSquare },
-  { key: "hr", label: "HR Module", icon: Briefcase },
-  { key: "groups", label: "Account Groups", icon: Folder },
-  { key: "ledgers", label: "Ledgers", icon: BookOpen },
-  { key: "vouchers", label: "Vouchers", icon: FileText },
-  { key: "vendors", label: "Vendors", icon: Truck },
-  { key: "accounting", label: "Accounting", icon: BookOpen },
-  { key: "menu-rights", label: "Menu Rights", icon: ShieldCheck, roles: ["ADMIN"] },
-  { key: "requests", label: "Requests", icon: Inbox },
-  { key: "modification", label: "Modification Log", icon: History },
-  { key: "bank-reconciliation", label: "Bank Reconciliation", icon: ArrowLeft },
-  { key: "specialized-reports", label: "Specialized Reports", icon: FileBarChart },
-  { key: "tools", label: "Tools", icon: Wrench, roles: ["ADMIN"] },
-  { key: "master-settings", label: "Master Settings", icon: SlidersHorizontal, roles: ["ADMIN"] },
-  { key: "reports", label: "Reports", icon: BarChart3 },
-  { key: "audit", label: "Audit Log", icon: ScrollText },
-  { key: "settings", label: "Settings", icon: Settings, roles: ["ADMIN", "MANAGER"] },
-];
-
-const TITLE: Record<NavKey, string> = {
-  dashboard: "Dashboard Overview",
-  "service-center": "Service Center",
-  customers: "Customer Management",
-  accounts: "Account Operations",
-  transactions: "Transactions",
-  loans: "Loan Management",
-  cards: "Card Management",
-  "gold-loans": "Gold Loan Management",
-  "deposit-products": "Deposit Products",
-  shares: "Share Capital",
-  overdrafts: "Overdraft Facility",
-  payments: "NEFT / RTGS / IMPS Payments",
-  qr: "QR Banking",
-  sms: "SMS Banking",
-  agents: "Field Agents & Collections",
-  "standing-instructions": "Standing Instructions",
-  "member-enrollment": "Member Enrollment",
-  hr: "HR Module",
-  accounting: "Accounting",
-  groups: "Account Groups",
-  ledgers: "Ledgers",
-  vouchers: "Vouchers",
-  vendors: "Manage Vendors",
-  "menu-rights": "Designation Menu Rights",
-  requests: "Approval Requests",
-  modification: "Modification Log",
-  tools: "System Tools",
-  "bank-reconciliation": "Bank Reconciliation & E-Collection",
-  "specialized-reports": "Specialized Reports",
-  "master-settings": "Master Settings",
-  reports: "Reports & Analytics",
-  audit: "Audit Trail",
-  settings: "System Settings",
-};
-
 export function AppShell() {
   const { user, logout, refreshUser } = useAuth();
-  const { active, setActive } = useNav();
+  const { active } = useNav();
 
   useEffect(() => {
     if (!user) refreshUser();
@@ -166,7 +60,6 @@ export function AppShell() {
 
   if (!user) return null;
 
-  const items = NAV.filter((n) => !n.roles || n.roles.includes(user.role));
   const initials = user.name
     .split(" ")
     .map((w) => w[0])
@@ -175,51 +68,14 @@ export function AppShell() {
     .toUpperCase();
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
-      {/* Sidebar */}
-      <aside className="hidden md:flex w-64 shrink-0 flex-col border-r bg-white">
-        <div className="h-16 flex items-center gap-2 px-5 border-b">
-          <div className="size-9 rounded-lg bg-emerald-600 text-white grid place-items-center">
-            <Building2 className="size-5" />
-          </div>
-          <div>
-            <div className="font-bold text-slate-900 leading-tight">CBS</div>
-            <div className="text-xs text-slate-500 leading-tight">Core Banking</div>
-          </div>
-        </div>
-        <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-          {items.map((n) => {
-            const Icon = n.icon;
-            const on = active === n.key;
-            return (
-              <button
-                key={n.key}
-                onClick={() => setActive(n.key)}
-                className={`w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                  on
-                    ? "bg-emerald-50 text-emerald-700"
-                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-                }`}
-              >
-                <Icon className={`size-4 ${on ? "text-emerald-600" : "text-slate-400"}`} />
-                <span className="flex-1 text-left">{n.label}</span>
-                {on && <ChevronRight className="size-4" />}
-              </button>
-            );
-          })}
-        </nav>
-        <div className="p-3 border-t">
-          <div className="rounded-lg bg-slate-50 p-3 text-xs text-slate-500">
-            <div className="font-semibold text-slate-700">{user.branch ?? "—"}</div>
-            <div>Branch code</div>
-          </div>
-        </div>
-      </aside>
+    <div className="h-dvh overflow-hidden bg-slate-50 flex">
+      {/* Sidebar — its own scroll container */}
+      <Sidebar role={user.role} branch={user.branch ?? null} />
 
       {/* Main column */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 min-h-0">
         {/* Top bar */}
-        <header className="h-16 border-b bg-white px-4 md:px-6 flex items-center gap-3 sticky top-0 z-10">
+        <header className="h-16 shrink-0 border-b bg-white px-4 md:px-6 flex items-center gap-3 z-10">
           <div className="md:hidden">
             <div className="size-9 rounded-lg bg-emerald-600 text-white grid place-items-center">
               <Building2 className="size-5" />
@@ -273,30 +129,10 @@ export function AppShell() {
           </DropdownMenu>
         </header>
 
-        {/* Mobile nav */}
-        <div className="md:hidden border-b bg-white px-3 py-2 flex gap-1 overflow-x-auto">
-          {items.map((n) => {
-            const Icon = n.icon;
-            const on = active === n.key;
-            return (
-              <button
-                key={n.key}
-                onClick={() => setActive(n.key)}
-                className={`shrink-0 flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition ${
-                  on
-                    ? "bg-emerald-50 text-emerald-700"
-                    : "text-slate-600 hover:bg-slate-100"
-                }`}
-              >
-                <Icon className="size-3.5" />
-                {n.label}
-              </button>
-            );
-          })}
-        </div>
+        <MobileNav role={user.role} />
 
         {/* Main content */}
-        <main className="flex-1 p-4 md:p-6 overflow-y-auto">
+        <main className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 md:p-6">
           {active === "dashboard" && <DashboardView />}
           {active === "service-center" && <ServiceCenterView />}
           {active === "customers" && <CustomersView />}
