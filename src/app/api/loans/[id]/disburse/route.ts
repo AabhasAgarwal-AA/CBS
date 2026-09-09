@@ -49,6 +49,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
         loan = await tx.loan.update({
           where: { id: loan!.id },
           data: { accountNumber: acctNo },
+          include: { customer: true },
         });
       }
 

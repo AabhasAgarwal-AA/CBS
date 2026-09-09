@@ -3,15 +3,16 @@ import { db } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { recordAudit } from "@/lib/audit";
 import { toNumber } from "@/lib/banking";
+import type { Prisma } from "@prisma/client";
 
-type CustomerWithRelations = NonNullable<Awaited<ReturnType<typeof db.customer.findUnique<{
+type CustomerWithRelations = Prisma.CustomerGetPayload<{
   include: {
     accounts: true;
     loans: true;
     cards: true;
     branch: true;
   };
-}>>>>;
+}>;
 
 function serializeCustomer(c: CustomerWithRelations | null) {
   if (!c) return c;

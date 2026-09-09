@@ -260,6 +260,12 @@ Nine Prisma models with proper relations and indexes:
 
 All routes are under `/api/*` and return JSON. Authenticated routes require the `cbs_token` cookie set by `POST /api/auth/login`.
 
+### Health
+
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| `GET` | `/api/health` | Liveness/readiness probe — no auth. Pings the database and returns `{status, service, timestamp, uptimeSeconds, checks: {database: {status, latencyMs}}}`. `200` when the DB is reachable, `503` (`status: "degraded"`) when it is not. |
+
 ### Authentication
 
 | Method | Endpoint | Description |

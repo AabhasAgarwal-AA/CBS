@@ -5,8 +5,8 @@ export async function recordAudit(opts: {
   userId?: string | null;
   action: string;
   entity: string;
-  entityId?: string;
-  details?: string;
+  entityId?: string | null;
+  details?: string | null;
 }) {
   try {
     // Validate that the user still exists in the DB. If not (e.g., after a

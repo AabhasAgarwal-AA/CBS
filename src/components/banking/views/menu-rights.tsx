@@ -67,7 +67,7 @@ export function MenuRightsView() {
     setRights((prev) => prev.map((r) => (r.menuKey === menuKey ? updated : r)));
     const r = await fetch("/api/menu-rights", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ designationId: selectedDesignation, menuKey, ...updated }),
+      body: JSON.stringify({ ...updated, designationId: selectedDesignation, menuKey }),
     });
     if (r.ok) toast.success(`${menuKey}: ${action} ${value ? "granted" : "revoked"}`);
     else toast.error("Failed to update");
