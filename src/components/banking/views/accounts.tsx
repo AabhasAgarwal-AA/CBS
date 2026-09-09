@@ -205,8 +205,8 @@ export function AccountsView() {
                             a.status === "ACTIVE"
                               ? "border-emerald-200 text-emerald-700 bg-emerald-50"
                               : a.status === "FROZEN"
-                                ? "border-amber-200 text-amber-700 bg-amber-50"
-                                : "border-slate-200 text-slate-600 bg-slate-50"
+                              ? "border-amber-200 text-amber-700 bg-amber-50"
+                              : "border-slate-200 text-slate-600 bg-slate-50"
                           }
                         >
                           {a.status}

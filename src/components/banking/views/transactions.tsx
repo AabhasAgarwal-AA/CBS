@@ -220,8 +220,9 @@ export function TransactionsView() {
                                 <Badge variant="outline">{t.type.replace("_", " ")}</Badge>
                               </TableCell>
                               <TableCell
-                                className={`text-right font-semibold ${credit ? "text-emerald-600" : "text-red-600"
-                                  }`}
+                                className={`text-right font-semibold ${
+                                  credit ? "text-emerald-600" : "text-red-600"
+                                }`}
                               >
                                 {credit ? "+" : "−"}
                                 {formatCurrency(t.amount)}
@@ -366,10 +367,10 @@ function TxnForm({
           {loading
             ? "Processing…"
             : type === "DEPOSIT"
-              ? "Deposit"
-              : type === "WITHDRAW"
-                ? "Withdraw"
-                : "Transfer"}
+            ? "Deposit"
+            : type === "WITHDRAW"
+            ? "Withdraw"
+            : "Transfer"}
         </Button>
       </CardContent>
     </Card>

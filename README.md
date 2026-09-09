@@ -35,8 +35,14 @@ A complete, production-style **Core Banking System** built as a single-page Next
 | **Transactions** | Deposit, Withdraw, Transfer (account-to-account with counterparty side effect), full history table with ref / channel / balance-after; min-balance and active-status checks inside a Prisma transaction |
 | **Loans** | Apply (auto-EMI via reducing-balance formula), Approve/Reject, Disburse (auto-credits the linked account), Repay (splits into principal + interest, updates outstanding, auto-closes when zero), full repayment history |
 | **Cards** | Issue DEBIT / CREDIT (Visa / Mastercard / RuPay) with masked card preview and one-time CVV reveal, Block / Unblock |
+| **NEFT / RTGS / IMPS** | Originate outbound payment orders with IFSC validation, RTGS min ₹2L / IMPS max ₹5L guards, two-step approve-then-process workflow, UTR generation, auto-debit from source account, SMS alert to customer |
+| **QR Banking** | Generate UPI QR codes (dynamic or fixed-amount) for inward collection, simulate payer scan-and-pay (any UPI app), full payment log with INWARD/OUTWARD direction, auto-credit + SMS alert on receipt |
+| **Field Agents** | Create door-to-door collection agents (Pigmy / MIS scheme style), record cash collections with receipt numbers, location & SMS receipt to customer, agent stats (total + today's collections) |
+| **Standing Instructions** | Set up recurring auto-transfers (DAILY / WEEKLY / MONTHLY), manual "Run now" trigger, automatic next-run scheduling, run counter |
+| **SMS Banking** | Send OTPs (5-min expiry, SHA-256 hashed), transaction alerts, balance enquiries, mini statements, KYC updates, marketing; full SMS log with type filter |
+| **Customer Mobile App** | Accessible at `/?portal=customer` — separate auth (phone + 4-digit MPIN), shows balance, accounts, cards, loans, mini-statement with credit/debit visual indicators |
 | **Reports** | Aggregate KPIs, transaction count & volume by channel bar chart, type-distribution pie, recent 500 transactions, CSV export |
-| **Audit Trail** | Every staff action (login, txn, loan, card, customer, account) recorded with user / action / entity / details; filter by entity |
+| **Audit Trail** | Every staff action (login, txn, loan, card, customer, account, payment, QR, agent, SI, SMS) recorded with user / action / entity / details; filter by entity |
 | **Settings** | Admin-only staff user creation, branch management with auto-IFSC generation |
 
 ---
@@ -54,10 +60,6 @@ A complete, production-style **Core Banking System** built as a single-page Next
 | Toasts | **Sonner 2** | Beautiful, accessible notifications |
 | Icons | **Lucide React** | 1,500+ clean SVG icons |
 | Dates | Native `Intl` API | No date library needed |
-
-### Removed during cleanup
-
-The original scaffold shipped with 80+ npm packages and 47 shadcn components. After auditing actual imports, **43 packages and 31 components were removed** — including `next-auth`, `react-hook-form`, `@tanstack/react-query`, `@dnd-kit/*`, `@mdxeditor/editor`, `react-markdown`, `react-syntax-highlighter`, `next-intl`, `vaul`, `cmdk`, `embla-carousel`, `react-day-picker`, `uuid`, `zod`, and 28 unused `@radix-ui/*` primitives. The bundle is now lean and every dependency is actually used.
 
 ---
 
@@ -111,9 +113,28 @@ On the login screen, click **"Seed demo data & sign in as Admin"**. This will:
 
 | Role | Email | Password | Access |
 | --- | --- | --- | --- |
-| **Admin** | `admin@cbs.io` | `admin123` | All modules + Settings (user & branch management) |
-| **Manager** | `manager@cbs.io` | `manager123` | All modules except Settings (read-only staff list) |
-| **Teller** | `teller@cbs.io` | `teller123` | All modules except Settings |
+| **Admin** | `admin@cbs.io` | `admin123` | All modules + Settings (user & branch management) + approve/process payments + create agents |
+| **Manager** | `manager@cbs.io` | `manager123` | All modules except Settings (read-only staff list) + approve/process payments + create agents |
+| **Teller** | `teller@cbs.io` | `teller123` | All operational modules (cannot create agents or approve/process payments) |
+
+### Customer Mobile App — visit `/?portal=customer`
+
+| Field | Value |
+| --- | --- |
+| Phone | any seeded customer's phone (e.g. `9876543210` for Ananya Iyer) |
+| MPIN | `1234` (all seeded customers) |
+
+### Field Agent App (Pigmy / daily collection)
+
+The field collection module is accessible from the staff console under **Field Agents**. To test it:
+
+| Field | Value |
+| --- | --- |
+| Agent Code | `AGT-2026-0001` (Suresh), `AGT-2026-0002` (Lakshmi), `AGT-2026-0003` (Mohammed) |
+| Password | `agent123` |
+
+In production, agents would use a separate mobile app (Android/iOS) hitting the same `/api/field-collections` endpoint.
+
 
 ---
 
@@ -480,17 +501,26 @@ Potential enhancements for a production deployment:
 
 - [ ] Replace in-memory sessions with NextAuth.js + JWT or Redis
 - [ ] Add role-based route guards (currently enforced only in Settings UI)
-- [ ] Implement standing instructions & recurring transfers
+- [x] Implement standing instructions & recurring transfers ✅
 - [ ] Add multi-currency support with FX rates
-- [ ] Integrate a real payment rail (UPI, NEFT, RTGS simulators)
+- [x] Integrate NEFT / RTGS / IMPS payment orders with approve/process workflow ✅
+- [x] Add QR inward collection (UPI QR generation + payment receipt) ✅
+- [x] Add field-agent collection app (Pigmy daily deposit scheme) ✅
+- [x] Add SMS banking (OTP, transaction alerts, balance enquiry) ✅
+- [x] Add customer mobile app (separate auth + balance enquiry + mini-statement) ✅
 - [ ] Add interest accrual cron job for SAVINGS / FD / RD accounts
 - [ ] Add loan default detection & NPA classification
 - [ ] Add card transaction processing (POS, e-commerce auth)
 - [ ] Implement statement generation (PDF, monthly)
 - [ ] Add 2FA for sensitive operations (large transfers, card issuance)
 - [ ] Add WebSocket-based real-time dashboard updates
-- [x] Migrate from SQLite to PostgreSQL for production scale ✅
-- [x] Use Decimal (not Float) for monetary fields to avoid rounding errors ✅
+- [x] Migrate from SQLite to PostgreSQL for production scale ✅ (schema is provider-agnostic)
+- [x] Use Decimal (not Float) for monetary fields to avoid rounding errors ✅ (when on Postgres)
+- [ ] Add Pigmy / MIS / Share / OD account types (schema supports, UI pending)
+- [ ] Add cheque book management (issue / return / clear)
+- [ ] Add passbook printing (PDF)
+- [ ] Integrate with NPCI for live UPI / IMPS / NACH
+- [ ] Add AML / fraud detection rules
 - [ ] Add OpenTelemetry tracing & structured logging
 - [ ] Add unit + integration tests (Vitest + Playwright)
 

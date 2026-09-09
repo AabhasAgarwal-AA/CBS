@@ -1,16 +1,26 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/store";
 import { LoginScreen } from "@/components/banking/login-screen";
 import { AppShell } from "@/components/banking/app-shell";
+import { CustomerPortal } from "@/components/banking/customer-portal";
 import { Loader2 } from "lucide-react";
 
 export default function Home() {
   const { user, loadingUser, refreshUser } = useAuth();
+  const [isCustomerPortal, setIsCustomerPortal] = useState(false);
 
   useEffect(() => {
-    refreshUser();
+    // The customer mobile app is exposed at /?portal=customer
+    // Read once on mount; defer setState to next tick to avoid cascading renders.
+    const params = new URLSearchParams(window.location.search);
+    const isPortal = params.get("portal") === "customer";
+    const t = setTimeout(() => {
+      setIsCustomerPortal(isPortal);
+      refreshUser();
+    }, 0);
+    return () => clearTimeout(t);
   }, [refreshUser]);
 
   if (loadingUser) {
@@ -23,6 +33,9 @@ export default function Home() {
       </div>
     );
   }
+
+  // Customer mobile app portal — separate auth (phone + MPIN)
+  if (isCustomerPortal) return <CustomerPortal />;
 
   if (!user) return <LoginScreen />;
   return <AppShell />;

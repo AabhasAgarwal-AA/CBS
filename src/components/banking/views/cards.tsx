@@ -174,8 +174,8 @@ export function CardsView() {
                           c.status === "ACTIVE"
                             ? "border-emerald-200 text-emerald-700 bg-emerald-50"
                             : c.status === "BLOCKED"
-                              ? "border-red-200 text-red-700 bg-red-50"
-                              : "border-slate-200 text-slate-600 bg-slate-50"
+                            ? "border-red-200 text-red-700 bg-red-50"
+                            : "border-slate-200 text-slate-600 bg-slate-50"
                         }>
                           {c.status}
                         </Badge>

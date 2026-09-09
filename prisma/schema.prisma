@@ -36,36 +36,47 @@ model Branch {
 
   customers Customer[]
   accounts  Account[]
+  agents    Agent[]
 }
 
 // ---- Customers (KYC) ----
 model Customer {
-  id         String   @id @default(cuid())
-  customerNo String   @unique
-  fullName   String
-  email      String?
-  phone      String
-  dob        DateTime?
-  gender     String? // MALE | FEMALE | OTHER
-  address    String?
-  city       String?
-  state      String?
-  pincode    String?
-  pan        String?  // Tax ID
-  aadhaar    String?  // National ID
-  occupation String?
-  annualIncome Decimal? @db.Decimal(14, 2)
-  kycStatus  String   @default("PENDING") // PENDING | VERIFIED | REJECTED
-  kycDate    DateTime?
-  status     String   @default("ACTIVE") // ACTIVE | INACTIVE | BLOCKED
-  branchId   String?
-  branch     Branch?  @relation(fields: [branchId], references: [id])
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id            String   @id @default(cuid())
+  customerNo    String   @unique
+  fullName      String
+  email         String?
+  phone         String
+  dob           DateTime?
+  gender        String?
+  address       String?
+  city          String?
+  state         String?
+  pincode       String?
+  pan           String?
+  aadhaar       String?
+  occupation    String?
+  annualIncome  Float?
+  kycStatus     String   @default("PENDING")
+  kycDate       DateTime?
+  status        String   @default("ACTIVE")
+  mpin          String? // 4-digit mobile banking PIN
+  branchId      String?
+  branch        Branch?  @relation(fields: [branchId], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  accounts Account[]
-  loans    Loan[]
-  cards    Card[]
+  accounts     Account[]
+  loans        Loan[]
+  cards        Card[]
+  paymentOrders PaymentOrder[]
+  standingInstructions StandingInstruction[]
+  fieldCollections FieldCollection[]
+  smsLogs      SmsLog[]
+  shares       Share[]
+  virtualAccounts VirtualAccount[]
+  enrollments  MemberEnrollment[]
+  overdrafts   Overdraft[]
+  goldLoans    GoldLoan[]
 }
 
 // ---- Accounts ----
@@ -76,20 +87,24 @@ model Account {
   customer      Customer @relation(fields: [customerId], references: [id])
   branchId      String?
   branch        Branch?  @relation(fields: [branchId], references: [id])
-  type          String   // SAVINGS | CURRENT | FIXED_DEPOSIT | RECURRING
-  balance       Decimal  @default(0) @db.Decimal(18, 2)
+  type          String   // SAVINGS | CURRENT | FIXED_DEPOSIT | RECURRING | PIGMY | MIS | OD | SHARE
+  balance       Float    @default(0)
   currency      String   @default("INR")
-  status        String   @default("ACTIVE") // ACTIVE | FROZEN | CLOSED
-  interestRate  Decimal  @default(0) @db.Decimal(6, 3) // up to 999.999 %
-  minBalance    Decimal  @default(0) @db.Decimal(18, 2)
+  status        String   @default("ACTIVE")
+  interestRate  Float    @default(0)
+  minBalance    Float    @default(0)
   openedAt      DateTime @default(now())
   closedAt      DateTime?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  transactions Transaction[]
-  cards        Card[]
-  loans        Loan[]
+  transactions  Transaction[]
+  cards         Card[]
+  loans         Loan[]
+  fieldCollections FieldCollection[]
+  qrCodes       QrCode[]
+  depositPlan   DepositPlan? @relation(fields: [planId], references: [id])
+  planId        String?
 }
 
 // ---- Transactions ----
@@ -98,13 +113,13 @@ model Transaction {
   txnRef        String   @unique
   accountNumber String
   account       Account  @relation(fields: [accountNumber], references: [accountNumber])
-  type          String   // DEPOSIT | WITHDRAW | TRANSFER_IN | TRANSFER_OUT | INTEREST | FEE
-  amount        Decimal  @db.Decimal(18, 2)
-  balanceAfter  Decimal  @db.Decimal(18, 2)
+  type          String   // DEPOSIT | WITHDRAW | TRANSFER_IN | TRANSFER_OUT | INTEREST | FEE | NEFT_IN | NEFT_OUT | RTGS_IN | RTGS_OUT | IMPS_IN | IMPS_OUT | QR_IN | QR_OUT | PIGMY_COLLECT | CHEQUE
+  amount        Float
+  balanceAfter  Float
   description   String?
-  counterparty  String? // for transfers
-  channel       String   @default("TELLER") // TELLER | ATM | ONLINE | MOBILE
-  status        String   @default("SUCCESS") // SUCCESS | FAILED | PENDING
+  counterparty  String?
+  channel       String   @default("TELLER") // TELLER | ATM | ONLINE | MOBILE | NEFT | RTGS | IMPS | QR | AGENT
+  status        String   @default("SUCCESS")
   createdAt     DateTime @default(now())
 
   @@index([accountNumber])
@@ -120,12 +135,12 @@ model Loan {
   accountNumber String?
   account       Account? @relation(fields: [accountNumber], references: [accountNumber])
   type          String   // HOME | AUTO | PERSONAL | EDUCATION | GOLD
-  principal     Decimal  @db.Decimal(18, 2)
-  interestRate  Decimal  @db.Decimal(6, 3)
+  principal     Float
+  interestRate  Float
   tenureMonths  Int
-  emi           Decimal  @db.Decimal(18, 2)
+  emi           Float
   disbursedAt   DateTime?
-  outstanding   Decimal  @default(0) @db.Decimal(18, 2)
+  outstanding    Float    @default(0)
   status        String   @default("PENDING") // PENDING | APPROVED | REJECTED | DISBURSED | CLOSED | DEFAULTED
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -137,10 +152,10 @@ model LoanRepayment {
   id            String   @id @default(cuid())
   loanId        String
   loan          Loan     @relation(fields: [loanId], references: [id])
-  amount        Decimal  @db.Decimal(18, 2)
-  principalPart Decimal  @db.Decimal(18, 2)
-  interestPart  Decimal  @db.Decimal(18, 2)
-  balanceAfter  Decimal  @db.Decimal(18, 2)
+  amount        Float
+  principalPart Float
+  interestPart  Float
+  balanceAfter  Float
   paidAt        DateTime @default(now())
 }
 
@@ -153,14 +168,14 @@ model Card {
   accountNumber String
   account       Account  @relation(fields: [accountNumber], references: [accountNumber])
   type          String   // DEBIT | CREDIT
-  network       String   @default("VISA") // VISA | MASTERCARD | RUPAY
+  network       String   @default("VISA")
   expiryMonth   Int
   expiryYear    Int
   cvvHash       String
   pinHash       String?
-  status        String   @default("ACTIVE") // ACTIVE | BLOCKED | EXPIRED | LOST
-  creditLimit   Decimal  @default(0) @db.Decimal(18, 2)
-  dailyLimit    Decimal  @default(50000) @db.Decimal(18, 2)
+  status        String   @default("ACTIVE")
+  creditLimit   Float    @default(0)
+  dailyLimit    Float    @default(50000)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
@@ -170,12 +185,630 @@ model AuditLog {
   id        String   @id @default(cuid())
   userId    String?
   user      User?    @relation(fields: [userId], references: [id])
-  action    String   // CREATE | UPDATE | DELETE | LOGIN | TXN
-  entity    String   // CUSTOMER | ACCOUNT | LOAN | CARD | TXN | USER
+  action    String
+  entity    String
   entityId  String?
   details   String?
   createdAt DateTime @default(now())
 
   @@index([entity])
   @@index([createdAt])
+}
+
+// ====== EXTENDED MODULES ======
+
+// ---- SMS Banking ----
+model SmsLog {
+  id         String   @id @default(cuid())
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id])
+  phone      String
+  message    String
+  type       String   // OTP | BALANCE_ENQUIRY | TXN_ALERT | MINI_STATEMENT | MARKETING | KYC_UPDATE
+  status     String   @default("SENT") // SENT | FAILED | PENDING
+  otpHash    String?
+  expiresAt  DateTime?
+  createdAt  DateTime @default(now())
+
+  @@index([customerId])
+  @@index([createdAt])
+}
+
+// ---- NEFT / RTGS / IMPS Payment Orders ----
+model PaymentOrder {
+  id                 String   @id @default(cuid())
+  refNo              String   @unique
+  customerId         String
+  customer           Customer @relation(fields: [customerId], references: [id])
+  fromAccount        String
+  beneficiaryName    String
+  beneficiaryAccount String
+  beneficiaryIfsc    String
+  amount             Float
+  mode               String   // NEFT | RTGS | IMPS
+  status             String   @default("PENDING") // PENDING | APPROVED | PROCESSED | REJECTED | RETURNED
+  remarks            String?
+  processedAt        DateTime?
+  utrNo              String?  // Unique Transaction Reference (bank-side)
+  createdAt          DateTime @default(now())
+
+  @@index([customerId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// ---- QR Codes (inward collection) ----
+model QrCode {
+  id            String   @id @default(cuid())
+  merchantLabel String   // merchant / customer display name
+  accountNumber String
+  account       Account  @relation(fields: [accountNumber], references: [accountNumber])
+  upiId         String   @unique
+  amount        Float?   // null = dynamic, set = fixed amount QR
+  purpose       String?
+  scans         Int      @default(0)
+  status        String   @default("ACTIVE")
+  createdAt     DateTime @default(now())
+
+  payments QrPayment[]
+}
+
+// ---- QR Payments (received via QR) ----
+model QrPayment {
+  id            String   @id @default(cuid())
+  qrId          String
+  qr            QrCode   @relation(fields: [qrId], references: [id])
+  accountNumber String
+  payerName     String
+  payerUpiId    String
+  amount        Float
+  refNo         String   @unique
+  status        String   @default("SUCCESS")
+  direction     String   @default("INWARD") // INWARD (received) | OUTWARD (sent)
+  createdAt     DateTime @default(now())
+
+  @@index([qrId])
+  @@index([createdAt])
+}
+
+// ---- Field Agents (Agent collection app) ----
+model Agent {
+  id               String   @id @default(cuid())
+  agentCode        String   @unique
+  name             String
+  phone            String
+  email            String?
+  branchId         String?
+  branch           Branch?  @relation(fields: [branchId], references: [id])
+  password         String
+  status           String   @default("ACTIVE")
+  totalCollections Float    @default(0)
+  todayCollections Float    @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  fieldCollections FieldCollection[]
+}
+
+// ---- Field Collections (Pigmy / daily deposit by agents) ----
+model FieldCollection {
+  id            String   @id @default(cuid())
+  agentId       String
+  agent         Agent    @relation(fields: [agentId], references: [id])
+  customerId    String
+  customer      Customer @relation(fields: [customerId], references: [id])
+  accountNumber String
+  account       Account  @relation(fields: [accountNumber], references: [accountNumber])
+  amount        Float
+  receiptNo     String   @unique
+  location      String?
+  collectedAt   DateTime @default(now())
+  status        String   @default("COLLECTED") // COLLECTED, DEPOSITED, CANCELLED
+  createdAt     DateTime @default(now())
+
+  @@index([agentId])
+  @@index([createdAt])
+}
+
+// ---- Standing Instructions (recurring transfers) ----
+model StandingInstruction {
+  id          String   @id @default(cuid())
+  customerId  String
+  customer    Customer @relation(fields: [customerId], references: [id])
+  fromAccount String
+  toAccount   String
+  amount      Float
+  frequency   String   // DAILY | WEEKLY | MONTHLY
+  dayOfMonth  Int?     // for MONTHLY (1-28)
+  nextRunAt   DateTime
+  lastRunAt   DateTime?
+  totalRuns   Int      @default(0)
+  status      String   @default("ACTIVE") // ACTIVE | PAUSED | COMPLETED
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([customerId])
+  @@index([nextRunAt])
+}
+
+// ====== COOPERATIVE BANK EXTENDED MODULES ======
+
+// ---- Deposit Plans (Pigmy / MIS / FD / RD plan definitions) ----
+model DepositPlan {
+  id            String   @id @default(cuid())
+  code          String   @unique
+  name          String
+  type          String   // PIGMY | MIS | FD | RD
+  minAmount     Float    @default(0)
+  maxAmount     Float    @default(0)
+  interestRate  Float
+  tenureMonths  Int
+  penaltyRate   Float    @default(0)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+
+  accounts Account[]
+}
+
+// ---- Share Capital ----
+model Share {
+  id            String   @id @default(cuid())
+  shareNo       String   @unique
+  customerId    String
+  customer      Customer @relation(fields: [customerId], references: [id])
+  faceValue     Float    @default(10)
+  quantity      Int      @default(1)
+  paidValue     Float    @default(10)
+  certificateNo String?
+  status        String   @default("ACTIVE") // ACTIVE | TRANSFERRED | WITHDRAWN
+  issuedAt      DateTime @default(now())
+  transferredAt DateTime?
+  createdAt     DateTime @default(now())
+
+  transfersAsFrom ShareTransfer[] @relation("ShareTransferFrom")
+  transfersAsTo   ShareTransfer[] @relation("ShareTransferTo")
+
+  @@index([customerId])
+}
+
+// ---- Share Transfers ----
+model ShareTransfer {
+  id            String   @id @default(cuid())
+  shareId       String
+  share         Share     @relation("ShareTransferFrom", fields: [shareId], references: [id])
+  fromCustomerId String
+  toCustomerId   String
+  toShare        Share?   @relation("ShareTransferTo", fields: [toCustomerId], references: [id])
+  quantity      Int
+  transferValue Float
+  status        String   @default("COMPLETED") // PENDING | COMPLETED | REJECTED
+  transferDate  DateTime @default(now())
+  createdAt     DateTime @default(now())
+
+  @@index([shareId])
+}
+
+// ---- Virtual Accounts (for E-Collection) ----
+model VirtualAccount {
+  id            String   @id @default(cuid())
+  virtualAccNo  String   @unique
+  customerId    String?
+  customer      Customer? @relation(fields: [customerId], references: [id])
+  linkedAccount String?
+  purpose       String?  // E_COLLECTION | CORPORATE | MEMBER_ENROLLMENT
+  upiId         String?
+  status        String   @default("ACTIVE")
+  createdAt     DateTime @default(now())
+
+  collections ECollection[]
+}
+
+// ---- E-Collection (inward payments via virtual account) ----
+model ECollection {
+  id            String   @id @default(cuid())
+  virtualAccountId String
+  virtualAccount VirtualAccount @relation(fields: [virtualAccountId], references: [id])
+  payerName     String
+  payerUpiId    String?
+  amount        Float
+  refNo         String   @unique
+  matched       Boolean  @default(false)
+  matchedTxnRef String?
+  status        String   @default("RECEIVED") // RECEIVED | MATCHED | UNMATCHED | RETURNED
+  receivedAt    DateTime @default(now())
+
+  @@index([virtualAccountId])
+  @@index([receivedAt])
+}
+
+// ---- Member Enrollment (CSC / Digital Seva style) ----
+model MemberEnrollment {
+  id            String   @id @default(cuid())
+  enrollmentNo  String   @unique
+  customerId    String
+  customer      Customer @relation(fields: [customerId], references: [id])
+  groupId       String?
+  group         GroupEnrollment? @relation(fields: [groupId], references: [id])
+  membershipType String  @default("INDIVIDUAL") // INDIVIDUAL | GROUP
+  enrollmentDate DateTime @default(now())
+  status        String   @default("ACTIVE") // ACTIVE | SUSPENDED | CANCELLED
+  createdAt     DateTime @default(now())
+
+  @@index([customerId])
+  @@index([groupId])
+}
+
+// ---- Group Enrollment ----
+model GroupEnrollment {
+  id            String   @id @default(cuid())
+  groupCode     String   @unique
+  groupName     String
+  leaderName    String
+  memberCount   Int      @default(0)
+  totalDeposit  Float    @default(0)
+  enrollmentDate DateTime @default(now())
+  status        String   @default("ACTIVE")
+  createdAt     DateTime @default(now())
+
+  members MemberEnrollment[]
+}
+
+// ---- Bank Reconciliation (NEFT/IMPS matching from bank statement) ----
+model BankReconciliation {
+  id            String   @id @default(cuid())
+  bankRefNo     String   @unique
+  amount        Float
+  mode          String   // NEFT | IMPS | RTGS
+  direction     String   @default("INWARD") // INWARD | OUTWARD
+  senderName    String?
+  senderAccount String?
+  senderIfsc    String?
+  matchedTxnRef String?
+  matchedPaymentId String?
+  status        String   @default("UNMATCHED") // UNMATCHED | MATCHED | RETURNED
+  statementDate DateTime
+  matchedAt     DateTime?
+  createdAt     DateTime @default(now())
+
+  @@index([status])
+  @@index([statementDate])
+}
+
+// ---- SMS Charges ----
+model SmsCharge {
+  id            String   @id @default(cuid())
+  customerId    String?
+  accountNumber String
+  amount        Float    @default(0)
+  smsCount      Int      @default(0)
+  chargeDate    DateTime @default(now())
+  createdAt     DateTime @default(now())
+
+  @@index([accountNumber])
+  @@index([chargeDate])
+}
+
+// ---- Overdraft (OD) facility ----
+model Overdraft {
+  id            String   @id @default(cuid())
+  accountNumber String   @unique
+  customerId    String
+  customer      Customer @relation(fields: [customerId], references: [id])
+  linkedAccount String
+  sanctionedLimit Float
+  drawnAmount   Float    @default(0)
+  interestRate  Float
+  status        String   @default("ACTIVE") // ACTIVE | CLOSED | FROZEN
+  sanctionedAt  DateTime @default(now())
+  closedAt      DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([customerId])
+}
+
+
+// ====== HR MODULE ======
+
+// ---- Designations (job roles) ----
+model Designation {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  level       Int      @default(1) // hierarchy level (1 = top, 5 = junior)
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  employees   Employee[]
+  menuRights  DesignationMenuRight[]
+}
+
+// ---- Designation Menu Rights (which menus each role can access) ----
+model DesignationMenuRight {
+  id            String   @id @default(cuid())
+  designationId String
+  designation   Designation @relation(fields: [designationId], references: [id])
+  menuKey       String   // e.g. "customers", "accounts", "loans"
+  canView       Boolean  @default(true)
+  canCreate     Boolean  @default(false)
+  canEdit       Boolean  @default(false)
+  canDelete     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  @@unique([designationId, menuKey])
+}
+
+// ---- Employees ----
+model Employee {
+  id            String   @id @default(cuid())
+  empCode       String   @unique
+  fullName      String
+  email         String?
+  phone         String
+  designationId String
+  designation   Designation @relation(fields: [designationId], references: [id])
+  branchId      String?
+  dateOfJoin    DateTime @default(now())
+  dateOfExit    DateTime?
+  basicSalary   Float    @default(0)
+  hraAllowance  Float    @default(0)
+  otherAllowance Float   @default(0)
+  status        String   @default("ACTIVE") // ACTIVE | ON_LEAVE | RESIGNED | TERMINATED
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  attendance    Attendance[]
+  salaries      Salary[]
+
+  @@index([designationId])
+  @@index([status])
+}
+
+// ---- Attendance ----
+model Attendance {
+  id          String   @id @default(cuid())
+  employeeId  String
+  employee    Employee @relation(fields: [employeeId], references: [id])
+  date        DateTime
+  checkIn     DateTime?
+  checkOut    DateTime?
+  status      String   @default("PRESENT") // PRESENT | ABSENT | HALF_DAY | LEAVE | HOLIDAY
+  remarks     String?
+  createdAt   DateTime @default(now())
+
+  @@unique([employeeId, date])
+  @@index([date])
+}
+
+// ---- Salary (monthly salary record) ----
+model Salary {
+  id            String   @id @default(cuid())
+  employeeId    String
+  employee      Employee @relation(fields: [employeeId], references: [id])
+  month         Int      // 1-12
+  year         Int
+  basicSalary   Float
+  hraAllowance  Float
+  otherAllowance Float
+  totalEarnings Float
+  deductions   Float    @default(0)
+  netPay       Float
+  status        String   @default("CREATED") // CREATED | PAID | CANCELLED
+  paidAt       DateTime?
+  createdAt    DateTime @default(now())
+
+  @@unique([employeeId, month, year])
+}
+
+// ====== ACCOUNTING MODULE ======
+
+// ---- Chart of Accounts ----
+model ChartOfAccount {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  type        String   // ASSET | LIABILITY | INCOME | EXPENSE | EQUITY
+  parentId    String?
+  parent      ChartOfAccount? @relation("AccountHierarchy", fields: [parentId], references: [id])
+  children    ChartOfAccount[] @relation("AccountHierarchy")
+  openingBalance Float @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  journalLines JournalLine[]
+}
+
+// ---- Journal Entries ----
+model JournalEntry {
+  id          String   @id @default(cuid())
+  entryNo     String   @unique
+  date        DateTime @default(now())
+  description String?
+  reference   String?  // link to txn/loan/payment
+  status      String   @default("POSTED") // DRAFT | POSTED | REVERSED
+  createdAt   DateTime @default(now())
+
+  lines       JournalLine[]
+}
+
+// ---- Journal Lines (double-entry: each entry has 2+ lines, debits = credits) ----
+model JournalLine {
+  id          String   @id @default(cuid())
+  journalEntryId String
+  journalEntry JournalEntry @relation(fields: [journalEntryId], references: [id])
+  accountCode String
+  account     ChartOfAccount @relation(fields: [accountCode], references: [code])
+  debit       Float    @default(0)
+  credit      Float    @default(0)
+  description String?
+
+  @@index([accountCode])
+}
+
+// ====== GOLD LOAN MODULE ======
+
+// ---- Gold Loan ----
+model GoldLoan {
+  id            String   @id @default(cuid())
+  loanNumber    String   @unique
+  customerId    String
+  customer      Customer @relation(fields: [customerId], references: [id])
+  accountNumber String?  // linked disbursement account
+  ornamentType  String   // GOLD_COIN | NECKLACE | BANGLE | RING | OTHER
+  grossWeight   Float    // grams
+  netWeight     Float    // grams after deductions
+  purity        Float    // e.g. 22 (for 22K)
+  estimatedValue Float   // based on market gold rate × net weight × purity %
+  sanctionedAmount Float // usually 75-90% of estimated value
+  interestRate  Float
+  tenureMonths  Int
+  outstanding   Float    @default(0)
+  status        String   @default("PENDING") // PENDING | APPROVED | DISBURSED | CLOSED | DEFAULTED
+  appraiserName String?
+  releasedAt    DateTime? // when gold is returned to customer
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  releases      GoldLoanRelease[]
+
+  @@index([customerId])
+}
+
+// ---- Gold Loan Release (when customer repays and takes gold back) ----
+model GoldLoanRelease {
+  id          String   @id @default(cuid())
+  goldLoanId  String
+  goldLoan    GoldLoan @relation(fields: [goldLoanId], references: [id])
+  releasedTo  String   // customer name
+  releasedBy  String   // staff name
+  releaseDate DateTime @default(now())
+  remarks     String?
+}
+
+// ====== MASTER SETTINGS ======
+
+// ---- Master Settings (key-value config) ----
+model MasterSetting {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String
+  category    String   @default("GENERAL") // GENERAL | BANKING | LOAN | SMS | CHARGES
+  description String?
+  updatedAt   DateTime @updatedAt
+}
+
+// ====== NIDHI / ACCOUNTING EXTENDED MODULES ======
+
+// ---- Account Groups (chart of accounts parent categories) ----
+model AccountGroup {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  type        String   // INCOME | EXPENDITURE | LIABILITY | ASSET
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  ledgers     Ledger[]
+}
+
+// ---- Ledgers (sub-accounts under groups) ----
+model Ledger {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  groupId     String
+  group       AccountGroup @relation(fields: [groupId], references: [id])
+  openingBalance Float @default(0)
+  currentBalance Float @default(0)
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  voucherLines VoucherLine[]
+}
+
+// ---- Vendors ----
+model Vendor {
+  id          String   @id @default(cuid())
+  vendorCode  String   @unique
+  name        String
+  email       String?
+  phone       String
+  address     String?
+  city        String?
+  state       String?
+  pincode     String?
+  pan         String?
+  gstin       String?
+  status      String   @default("ACTIVE") // ACTIVE | INACTIVE | BLACKLISTED
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  vouchers    Voucher[]
+}
+
+// ---- Vouchers (accounting transactions: Receipt, Payment, Contra, Journal) ----
+model Voucher {
+  id          String   @id @default(cuid())
+  voucherNo   String   @unique
+  type        String   // RECEIPT | PAYMENT | CONTRA | JOURNAL | SALES | PURCHASE
+  vendorId    String?
+  vendor      Vendor?  @relation(fields: [vendorId], references: [id])
+  date        DateTime @default(now())
+  amount      Float
+  description String?
+  reference   String?  // link to txn/loan/payment
+  status      String   @default("POSTED") // DRAFT | POSTED | CANCELLED
+  createdBy   String?  // user id
+  createdAt   DateTime @default(now())
+
+  lines       VoucherLine[]
+}
+
+// ---- Voucher Lines (double-entry) ----
+model VoucherLine {
+  id          String   @id @default(cuid())
+  voucherId   String
+  voucher     Voucher  @relation(fields: [voucherId], references: [id])
+  ledgerId    String
+  ledger      Ledger   @relation(fields: [ledgerId], references: [id])
+  debit       Float    @default(0)
+  credit      Float    @default(0)
+  description String?
+
+  @@index([voucherId])
+}
+
+// ---- Approval Requests (Request module) ----
+model ApprovalRequest {
+  id          String   @id @default(cuid())
+  requestNo   String   @unique
+  type        String   // LOAN_APPROVAL | PAYMENT_APPROVAL | ACCOUNT_OPEN | KYC_VERIFY | OD_SANCTION | GOLD_LOAN | VENDOR_CREATE
+  entityId    String   // id of the entity being approved
+  entityName  String   // display name
+  requestedBy String?  // user id
+  amount      Float?   // for monetary requests
+  status      String   @default("PENDING") // PENDING | APPROVED | REJECTED
+  approvedBy  String?
+  remarks     String?
+  createdAt   DateTime @default(now())
+  decidedAt   DateTime?
+
+  @@index([status])
+  @@index([type])
+}
+
+// ---- Modification Log (audit trail of edits) ----
+model ModificationLog {
+  id          String   @id @default(cuid())
+  entity      String   // CUSTOMER | ACCOUNT | LOAN | VENDOR | VOUCHER etc.
+  entityId    String
+  fieldName   String
+  oldValue    String?
+  newValue    String?
+  modifiedBy  String?
+  reason      String?
+  createdAt   DateTime @default(now())
+
+  @@index([entity, entityId])
 }

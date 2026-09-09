@@ -15,8 +15,30 @@ import {
   LogOut,
   Building2,
   ChevronRight,
+  Send,
+  QrCode,
+  MessageSquare,
+  UsersRound,
+  Repeat,
+  Layers,
+  Share2,
+  TrendingUp,
+  UserPlus,
+  ArrowLeft,
+  FileBarChart,
+  Headphones,
+  Coins,
+  Briefcase,
+  BookOpen,
+  SlidersHorizontal,
+  Folder,
+  FileText,
+  Truck,
+  ShieldCheck,
+  Inbox,
+  History,
+  Wrench,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -34,17 +56,65 @@ import { AccountsView } from "@/components/banking/views/accounts";
 import { TransactionsView } from "@/components/banking/views/transactions";
 import { LoansView } from "@/components/banking/views/loans";
 import { CardsView } from "@/components/banking/views/cards";
+import { PaymentsView } from "@/components/banking/views/payments";
+import { QrView } from "@/components/banking/views/qr";
+import { SmsView } from "@/components/banking/views/sms";
+import { AgentsView } from "@/components/banking/views/agents";
+import { StandingInstructionsView } from "@/components/banking/views/standing-instructions";
+import { DepositProductsView } from "@/components/banking/views/deposit-products";
+import { ShareCapitalView } from "@/components/banking/views/share-capital";
+import { OverdraftsView } from "@/components/banking/views/overdrafts";
+import { GoldLoanView } from "@/components/banking/views/gold-loan";
+import { HrView } from "@/components/banking/views/hr";
+import { AccountingView } from "@/components/banking/views/accounting";
+import { GroupsView } from "@/components/banking/views/groups";
+import { LedgersView } from "@/components/banking/views/ledgers";
+import { VouchersView } from "@/components/banking/views/vouchers";
+import { VendorsView } from "@/components/banking/views/vendors";
+import { MenuRightsView } from "@/components/banking/views/menu-rights";
+import { RequestsView } from "@/components/banking/views/requests";
+import { ModificationView } from "@/components/banking/views/modification";
+import { ToolsView } from "@/components/banking/views/tools";
+import { MemberEnrollmentView } from "@/components/banking/views/member-enrollment";
+import { BankReconciliationView } from "@/components/banking/views/bank-reconciliation";
+import { SpecializedReportsView } from "@/components/banking/views/specialized-reports";
+import { MasterSettingsView } from "@/components/banking/views/master-settings";
+import { ServiceCenterView } from "@/components/banking/views/service-center";
 import { ReportsView } from "@/components/banking/views/reports";
 import { AuditView } from "@/components/banking/views/audit";
 import { SettingsView } from "@/components/banking/views/settings";
 
 const NAV: { key: NavKey; label: string; icon: React.ElementType; roles?: string[] }[] = [
   { key: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { key: "service-center", label: "Service Center", icon: Headphones },
   { key: "customers", label: "Customers", icon: Users },
   { key: "accounts", label: "Accounts", icon: Wallet },
   { key: "transactions", label: "Transactions", icon: ArrowLeftRight },
   { key: "loans", label: "Loans", icon: Landmark },
   { key: "cards", label: "Cards", icon: CreditCard },
+  { key: "gold-loans", label: "Gold Loans", icon: Coins },
+  { key: "deposit-products", label: "Deposit Products", icon: Layers },
+  { key: "shares", label: "Share Capital", icon: Share2 },
+  { key: "overdrafts", label: "Overdrafts", icon: TrendingUp },
+  { key: "payments", label: "NEFT/RTGS/IMPS", icon: Send },
+  { key: "qr", label: "QR Banking", icon: QrCode },
+  { key: "agents", label: "Field Agents", icon: UsersRound },
+  { key: "standing-instructions", label: "Standing Instructions", icon: Repeat },
+  { key: "member-enrollment", label: "Member Enrollment", icon: UserPlus },
+  { key: "sms", label: "SMS Banking", icon: MessageSquare },
+  { key: "hr", label: "HR Module", icon: Briefcase },
+  { key: "groups", label: "Account Groups", icon: Folder },
+  { key: "ledgers", label: "Ledgers", icon: BookOpen },
+  { key: "vouchers", label: "Vouchers", icon: FileText },
+  { key: "vendors", label: "Vendors", icon: Truck },
+  { key: "accounting", label: "Accounting", icon: BookOpen },
+  { key: "menu-rights", label: "Menu Rights", icon: ShieldCheck, roles: ["ADMIN"] },
+  { key: "requests", label: "Requests", icon: Inbox },
+  { key: "modification", label: "Modification Log", icon: History },
+  { key: "bank-reconciliation", label: "Bank Reconciliation", icon: ArrowLeft },
+  { key: "specialized-reports", label: "Specialized Reports", icon: FileBarChart },
+  { key: "tools", label: "Tools", icon: Wrench, roles: ["ADMIN"] },
+  { key: "master-settings", label: "Master Settings", icon: SlidersHorizontal, roles: ["ADMIN"] },
   { key: "reports", label: "Reports", icon: BarChart3 },
   { key: "audit", label: "Audit Log", icon: ScrollText },
   { key: "settings", label: "Settings", icon: Settings, roles: ["ADMIN", "MANAGER"] },
@@ -52,11 +122,35 @@ const NAV: { key: NavKey; label: string; icon: React.ElementType; roles?: string
 
 const TITLE: Record<NavKey, string> = {
   dashboard: "Dashboard Overview",
+  "service-center": "Service Center",
   customers: "Customer Management",
   accounts: "Account Operations",
   transactions: "Transactions",
   loans: "Loan Management",
   cards: "Card Management",
+  "gold-loans": "Gold Loan Management",
+  "deposit-products": "Deposit Products",
+  shares: "Share Capital",
+  overdrafts: "Overdraft Facility",
+  payments: "NEFT / RTGS / IMPS Payments",
+  qr: "QR Banking",
+  sms: "SMS Banking",
+  agents: "Field Agents & Collections",
+  "standing-instructions": "Standing Instructions",
+  "member-enrollment": "Member Enrollment",
+  hr: "HR Module",
+  accounting: "Accounting",
+  groups: "Account Groups",
+  ledgers: "Ledgers",
+  vouchers: "Vouchers",
+  vendors: "Manage Vendors",
+  "menu-rights": "Designation Menu Rights",
+  requests: "Approval Requests",
+  modification: "Modification Log",
+  tools: "System Tools",
+  "bank-reconciliation": "Bank Reconciliation & E-Collection",
+  "specialized-reports": "Specialized Reports",
+  "master-settings": "Master Settings",
   reports: "Reports & Analytics",
   audit: "Audit Trail",
   settings: "System Settings",
@@ -204,11 +298,34 @@ export function AppShell() {
         {/* Main content */}
         <main className="flex-1 p-4 md:p-6 overflow-y-auto">
           {active === "dashboard" && <DashboardView />}
+          {active === "service-center" && <ServiceCenterView />}
           {active === "customers" && <CustomersView />}
           {active === "accounts" && <AccountsView />}
           {active === "transactions" && <TransactionsView />}
           {active === "loans" && <LoansView />}
           {active === "cards" && <CardsView />}
+          {active === "gold-loans" && <GoldLoanView />}
+          {active === "deposit-products" && <DepositProductsView />}
+          {active === "shares" && <ShareCapitalView />}
+          {active === "overdrafts" && <OverdraftsView />}
+          {active === "payments" && <PaymentsView />}
+          {active === "qr" && <QrView />}
+          {active === "agents" && <AgentsView />}
+          {active === "standing-instructions" && <StandingInstructionsView />}
+          {active === "member-enrollment" && <MemberEnrollmentView />}
+          {active === "sms" && <SmsView />}
+          {active === "hr" && <HrView />}
+          {active === "accounting" && <AccountingView />}
+          {active === "groups" && <GroupsView />}
+          {active === "ledgers" && <LedgersView />}
+          {active === "vouchers" && <VouchersView />}
+          {active === "vendors" && <VendorsView />}
+          {active === "menu-rights" && <MenuRightsView />}
+          {active === "requests" && <RequestsView />}
+          {active === "modification" && <ModificationView />}
+          {active === "bank-reconciliation" && <BankReconciliationView />}
+          {active === "specialized-reports" && <SpecializedReportsView />}
+          {active === "tools" && <ToolsView />}
           {active === "reports" && <ReportsView />}
           {active === "audit" && <AuditView />}
           {active === "settings" && <SettingsView />}
